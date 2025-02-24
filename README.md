@@ -62,7 +62,7 @@ hwp-to-html-parser/
 │   │   ├── __init__.py
 │   ├── utils/                   # 유틸리티 함수 모음
 │   │   ├── file_handler.py      # 파일 입출력 관련 모듈
-│   │   ├── logging_config.py    # 로깅 설정
+│   │   ├── logger.py    # 로깅 설정
 │   │   ├── constants.py         # 상수 관리
 │   │   ├── __init__.py
 │   ├── main.py                  # 프로그램 실행 진입점
