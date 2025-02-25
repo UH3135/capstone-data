@@ -76,3 +76,9 @@ hwp-to-html-parser/
 │── LICENSE                       # 라이선스 파일
 │── README.md                     # 프로젝트 개요
 ```
+
+## 실행 방법
+1. pyhwpx 설치
+```
+pip install --pre pyhwpx 
+```
