@@ -82,3 +82,6 @@ hwp-to-html-parser/
 ```
 pip install --pre pyhwpx 
 ```
+2. assets Directory 생성
+   - assets 파일 아래에 input 폴더 안에 모든 hwp 파일을 담아둡니다.
+
