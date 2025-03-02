@@ -29,7 +29,7 @@ hwp-to-html-parser/
 │   │   ├── sample1.json
 │── src/
 │   ├── parsers/                 # 데이터 파싱 관련 모듈
-│   │   ├── hwp_to_html.py       # HWP -> HTML 변환
+│   │   ├── clipboard.py         # clipboard에서 html 추출
 │   │   ├── table_parser.py      # 테이블 변환
 │   │   ├── latex_parser.py.     # LaTeX 변환
 │   │   ├── image_ocr.py         # 이미지 → 텍스트 (OCR)
