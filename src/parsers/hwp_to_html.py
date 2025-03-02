@@ -1,29 +1,108 @@
 import io
 import pickle
+import shutil
+import subprocess
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
 from pathlib import Path
 from time import sleep, time
 from typing import List, Optional, Tuple
-
-import datasets
 import pandas as pd
 import win32clipboard as clipboard
 from bs4 import BeautifulSoup
 from pyhwpx import Hwp
 
-
-@dataclass
-class Table:
-    html: str
-    row: int
-    col: int
+from utils.logger import init_logger
+from parsers.table_parser import Table
 
 
-logger = datasets.logging.get_logger()
+logger = init_logger(__file__, "DEBUG")
 
 
-def _get_html_from_clipboard(max_retries: int = 10) -> Optional[str]:
+def extract_html_from_hwp(hwp_dir_path: Path, output_dir_path: Path, hwp: Hwp) -> Tuple[List[Table], List[str]]:
+    table_ls = list()
+    img_ls = list()
+
+    if not output_dir_path.exists():
+        output_dir_path.mkdir(parents=True)
+
+    for hwp_file_path in hwp_dir_path.rglob("*.hwp"):
+        output_hwp_path = output_dir_path / hwp_file_path.parent.stem
+
+        if not output_hwp_path.exists():
+            output_hwp_path.mkdir(parents=True)
+
+        logger.info(f"Hwp {hwp_file_path} loding..")
+        hwp.open(hwp_file_path.as_posix())
+
+        one_file_table_ls = list()
+
+        ctrl = hwp.HeadCtrl
+        for ctrl in hwp.ctrl_list:
+            if ctrl.UserDesc == "표":
+                # 글자처럼 취급 적용 (속성 미적용시 표를 넘어가기도 함)
+                prop = ctrl.Properties
+                prop.SetItem("TreatAsChar", True)
+                ctrl.Properties = prop
+
+                # hwp로 현재 ctrl 위치에 있는 부분 복사
+                hwp.SetPosBySet(ctrl.GetAnchorPos(0))
+                hwp.HAction.Run("SelectCtrlFront")
+                hwp.HAction.Run("Copy")
+
+                try:
+                    html = _get_tag_from_clipboard(tag="table")
+                    hwp.ShapeObjTableSelCell()
+                    table_df = pd.read_html(io.StringIO(html))[0]
+                    row_num, col_num = table_df.shape
+                        
+                except BaseException as e:
+                    logger.error(f"TableExtractionError: Failed to extract table: {e}")
+                    continue
+
+                if not row_num or not col_num:
+                    continue
+
+                table = Table(html=html, col=col_num, row=row_num)
+
+                one_file_table_ls.append(table)
+            
+            elif ctrl.UserDesc == "그림":
+                # hwp로 현재 ctrl 위치에 있는 부분 복사
+                hwp.SetPosBySet(ctrl.GetAnchorPos(0))
+                hwp.HAction.Run("SelectCtrlFront")
+                hwp.HAction.Run("Copy")
+
+                try:
+                    img_src = _get_tag_from_clipboard(tag="img")
+                    if not img_src:
+                        ctrl = ctrl.Next
+                        continue
+                    img_save_path = output_hwp_path / f"{hwp_file_path.stem}_{len(img_ls)+1}.jpg"
+                    shutil.copy(img_src, img_save_path)
+                    img_ls.append(img_save_path)
+
+                except BaseException as e:
+                    logger.error(f"ImageExtractionError: Failed to extract image: {e}")
+
+            else:
+                continue
+
+        table_ls.extend(one_file_table_ls)
+
+        pickle_save_path = output_hwp_path / f"{hwp_file_path.stem}.pickle"
+        pickle_save_path.write_bytes(pickle.dumps(one_file_table_ls))
+
+    return table_ls, img_ls
+
+
+def _get_tag_from_clipboard(tag: str, max_retries: int = 10) -> Optional[str]:
+    """
+    클립보드에서 html table을 가져옵니다.
+
+    :param max_retries: 클립보드에서 접근 시도하는 횟수 제한
+    :return: 클립보드에서 가져온 HTML 테이블 문자열
+    :raises Exception: 클립보드 접근 실패 시 예외 발생
+    """
     for attempt in range(1, max_retries):
         try:
             clipboard.OpenClipboard()
@@ -34,17 +113,21 @@ def _get_html_from_clipboard(max_retries: int = 10) -> Optional[str]:
 
             html = html.decode("utf-8", errors="ignore")
             html_soup = BeautifulSoup(html, "html.parser")
-            html_table = html_soup.find("html").find("table")
-            html_table = html_table.encode().decode("utf-8")
+            html_tag = html_soup.find("html").find(tag)
 
-            return html_table
+            if tag == 'img':
+                img_src = html_tag['src']
+                return img_src[8:] if img_src.startswith("file:///") else img_src
+            
+            html_tag = html_tag.encode().decode("utf-8")
+            logger.info(f"Success to get {tag} from clipboard")
+
+            return html_tag
         except Exception as e:
             if attempt < max_retries:
                 sleep(0.1)
             else:
-                logger.debug(
-                    f"Failed to access clipboard after {max_retries} attempts"
-                )
+                logger.error(f"Failed to access clipboard after {max_retries} attempts")
                 raise e
         finally:
             try:
@@ -56,76 +139,24 @@ def _get_html_from_clipboard(max_retries: int = 10) -> Optional[str]:
     return None
 
 
-def _extract_html_table(
-    hwp_dir_path: Path, hwp: Hwp
-) -> Tuple[List[Table], float]:
-    def get_row_col_num(hwp: Hwp) -> Tuple[int, int]:
-        # get_row_num, get_col_num의 기능은 겹침. 단순 RowCount냐, ColCount의 차이임. 속도 개선을 위해 이 부분을 간소화 함.
-        cur_pos = hwp.get_pos()
-        hwp.SelectCtrlFront()
-        t = hwp.GetTextFile("HWPML2X", "saveblock")
-        root = ET.fromstring(t)
-        table = root.find(".//TABLE")
-        row_count = int(table.get("RowCount"))
-        col_count = int(table.get("ColCount"))
-        hwp.set_pos(*cur_pos)
-        return (row_count, col_count)
 
-    table_ls = list()
-    time_ls = list()
-    for hwp_file_path in hwp_dir_path.glob("*.hwp"):
-        hwp.open(hwp_file_path.as_posix())
+# 추가로 만든 hwp2thtml 함수
+def _convert_hwp_to_html(hwp_path: str, output_path: str) -> None:
+    """
+    HWP to HTML 변환
 
-        extract_time_ls = list()
-        one_file_table_ls = list()
+    :param hwp_path: 변환할 hwp 경로
+    :param output_path: 변환된 html 위치
+    :raise FileNotFoundError: hwp5html 미설치 오류
+    :raise Exception: 파일 변환 실패
+    """
+    try:
+        command = f"hwp5html --output {output_path} {hwp_path}"
+        subprocess.run(command, shell=True, check=True)
+        logger.info("Success to convert HWP to HTML.")
 
-        ctrl = hwp.HeadCtrl
-        while ctrl:
-            if ctrl.UserDesc != "표":
-                ctrl = ctrl.Next
-                continue
+    except FileNotFoundError as fe:
+        logger.error(f"FileNotFoundError: Unable to locate 'hwp5html' executable. Please check if 'pyhwp' is installed correctly. {str(fe)}")
 
-            start_time = time()
-
-            hwp.SetPosBySet(ctrl.GetAnchorPos(0))
-            hwp.HAction.Run("SelectCtrlFront")
-            hwp.HAction.Run("Copy")
-
-            try:
-                html = _get_html_from_clipboard()
-                hwp.ShapeObjTableSelCell()
-                table_df = pd.read_html(io.StringIO(html))[0]
-                row_num, col_num = table_df.shape
-
-                # NOTE: 나중에 알게 되었는데, 이거 부정확 함.
-                #       row 10개를 1개로 판단하거나 그럼, 이건 그냥 df로 해서 확인하는게 가장 정확할 듯.
-                # row_num, col_num = get_row_col_num(hwp)
-
-                # read_html으로 파싱 되는지 확인 한번 함.
-            except BaseException as e:
-                logger.debug(f"table 추출 중 다음과 같은 애러가 발생: {e}")
-                ctrl = ctrl.Next
-                continue
-
-            if not row_num or not col_num:
-                ctrl = ctrl.Next
-                continue
-
-            table = Table(html=html, col=col_num, row=row_num)
-
-            one_file_table_ls.append(table)
-            ctrl = ctrl.Next
-
-            end_time = time()
-
-            extract_time_ls.append(end_time - start_time)
-        table_ls.extend(one_file_table_ls)
-
-        pickle_save_path = hwp_file_path.parent.joinpath(
-            f"{hwp_file_path.stem}.pickle"
-        )
-        pickle_save_path.write_bytes(pickle.dumps(one_file_table_ls))
-        time_ls.extend(extract_time_ls)
-
-    mean_time = sum(time_ls) / len(time_ls)
-    return (table_ls, mean_time)
+    except Exception as e:
+        logger.error(f"HwpConversionError: Failed to convert HWP to HTML. {str(e)}")
