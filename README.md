@@ -32,13 +32,14 @@ hwp-to-html-parser/
 │   │   ├── clipboard.py         # clipboard에서 html 추출
 │   │   ├── table_parser.py      # 테이블 변환
 │   │   ├── latex_parser.py.     # LaTeX 변환
-│   │   ├── image_ocr.py         # 이미지 → 텍스트 (OCR)
 │   │   ├── data_cleaner.py      # 데이터 전처리 (공백/특수문자 제거) 및 Metadata 추가
+│   │   ├── image_ocr.py         # 이미지 → 텍스트 (OCR)
 │   │   ├── json_formatter.py    # JSON 변환 및 저장
+│   │   ├── process_hwp_docs.py  # hwp automation api 컨트롤
 │   │   ├── __init__.py
 │   ├── utils/                   # 유틸리티 함수 모음
-│   │   ├── file_handler.py      # 파일 입출력 관련 모듈
-│   │   ├── logger.py    # 로깅 설정
+│   │   ├── file_handler.py      # 파일 로드 관련 모듈 (pickling 등)
+│   │   ├── logger.py            # 로깅 설정
 │   │   ├── constants.py         # 상수 관리
 │   │   ├── __init__.py
 │   ├── main.py                  # 프로그램 실행 진입점
