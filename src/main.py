@@ -1,10 +1,8 @@
 import os
-import time
+import json
 from pathlib import Path
 
-
-
-from parsers.table_parser import Table, dataframe_to_json
+from parsers.table_parser import TableParser
 from parsers.image_ocr import convert_image_to_json
 from parsers.json_formatter import save_json
 from utils.file_handler import get_data_from_pickling, save_data_from_pickling
@@ -39,12 +37,16 @@ def main():
         except ImportError:
             logger.error("please install pyhwpx")
     else:
-        output_path = OUTPUT_DIR / "공업수학(KREYSZIG)_정진교" / "23강.pickle"
+        output_path = OUTPUT_DIR / "test" / "test4.pickle"
         components = get_data_from_pickling(output_path)
 
     # table parsing
-    for table in components['tables']:
-        print(dataframe_to_json(table))
+    table_data = components['tables']
+    table_parser = TableParser()
+
+    for table_name in table_data.keys():
+        table_data[table_name] = table_parser.parse_table_from_html(table_data[table_name])
+    print(json.dumps(table_data, ensure_ascii=False, indent=4))
 
 
 if __name__ == "__main__":
