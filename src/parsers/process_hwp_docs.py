@@ -34,15 +34,23 @@ class HwpController:
         self.one_file_equations = []
         
         start = time.time()
+        image_cnt = 0
         table_cnt = 0
+        equation_cnt = 0
+        
 
         # Latex 수식을 우선 추출
         self.hwp_equation = []
         for ctrl in self.hwp.ctrl_list:
             if ctrl.UserDesc == "수식":
+                equation_cnt += 1
                 self._copy_ctrl(ctrl)
-                try: 
+                try:
                     self.hwp_equation.append(ctrl.Properties.Item('VisualString'))
+                    
+                    self.hwp.move_to_ctrl(ctrl)
+                    self.hwp.MoveRight()
+                    self.hwp.insert_text(f'{{eqation_{equation_cnt}}}')
         
                 except Exception as e:
                     logger.error(f"EqualationExtractionError: {str(e)}")
@@ -51,11 +59,16 @@ class HwpController:
 
         for ctrl in self.hwp.ctrl_list:
             if ctrl.UserDesc == "표":
+                table_cnt += 1
                 self._copy_ctrl(ctrl)
                 try:
                     html = get_table_from_clipboard()
                     table_df = pd.read_html(io.StringIO(html))[0]
                     row_num, col_num = table_df.shape
+                    
+                    self.hwp.move_to_ctrl(ctrl)
+                    self.hwp.MoveRight()
+                    self.hwp.insert_text(f'{{table_{table_cnt}}}')
                         
                 except BaseException as e:
                     logger.error(f"TableExtractionError: Failed to extract table: {e}")
@@ -63,17 +76,21 @@ class HwpController:
 
                 if not row_num or not col_num:
                     continue
-                
-                table_cnt += 1
+
                 self.one_file_table_list[table_cnt] = html
             
             elif ctrl.UserDesc == "그림":
+                image_cnt += 1
                 self._copy_ctrl(ctrl)
                 try:
                     img_tmp_path = Path(get_image_from_clipboard())
                     if not img_tmp_path:
                         continue   
-                    self.one_file_images[str(img_tmp_path)] = ''    
+                    self.one_file_images[str(img_tmp_path)] = ''
+                    
+                    self.hwp.move_to_ctrl(ctrl)
+                    self.hwp.MoveRight()
+                    self.hwp.insert_text(f'{{image_{image_cnt}}}')  
 
                 except Exception as e:
                     logger.error(f"ImageExtractionError: {str(e)}")
