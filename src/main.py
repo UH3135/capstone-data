@@ -46,7 +46,10 @@ def main():
     table_parser = TableParser()
 
     for curr_doc in total_dict.keys():
+<<<<<<< HEAD
         #table parsing
+=======
+>>>>>>> 6c5ba3c9be4d67b24c18ae4140face50befd7ab3
         for table_name in total_dict[curr_doc]['tables'].keys():
             total_dict[curr_doc]['tables'][table_name] = table_parser.parse_table_from_html(total_dict[curr_doc]['tables'][table_name])
 
