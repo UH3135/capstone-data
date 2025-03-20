@@ -4,16 +4,18 @@ from pathlib import Path
 
 from parsers.table_parser import TableParser
 from parsers.image_ocr import convert_image_to_json
-from parsers.json_formatter import save_json
+from parsers.data_cleaner import preprocess_markdown
 from utils.file_handler import get_data_from_pickling, save_data_from_pickling
 from utils.logger import init_logger
-from utils.constants import DATA_DIR, OUTPUT_DIR
+from utils.constants import DATA_DIR, OUTPUT_DIR, OUTPUT_JSON, OUTPUT_PICKLE
 
 
 logger = init_logger(__file__, "DEBUG")
 
 
 def main():
+    total_dict = dict()
+
     if os.name == "nt":
         try:
             # Linux나 macOS 환경에서는 import 안하도록
@@ -32,21 +34,38 @@ def main():
                     os.makedirs(output_path)
                 save_data_from_pickling(output_path / f'{hwp_path.stem}.pickle', components)
                 
+                total_dict[str(hwp_path)] = components
             del hwp_ctrl
 
         except ImportError:
             logger.error("please install pyhwpx")
     else:
-        output_path = OUTPUT_DIR / "test" / "test4.pickle"
-        components = get_data_from_pickling(output_path)
+        total_dict = get_data_from_pickling(OUTPUT_PICKLE)
+        logger.info(f"Open pickling file: {OUTPUT_PICKLE}")
 
-    # table parsing
-    table_data = components['tables']
     table_parser = TableParser()
 
-    for table_name in table_data.keys():
-        table_data[table_name] = table_parser.parse_table_from_html(table_data[table_name])
-    print(json.dumps(table_data, ensure_ascii=False, indent=4))
+    for curr_doc in total_dict.keys():
+        #table parsing
+        for table_name in total_dict[curr_doc]['tables'].keys():
+            total_dict[curr_doc]['tables'][table_name] = table_parser.parse_table_from_html(total_dict[curr_doc]['tables'][table_name])
+
+        # image Text 변환
+        # for img_path in curr_doc['images'].keys():
+        #     total_dict[curr_doc]['images'][img_path] = convert_image_to_json(Path(img_path))
+    
+        # Text 전처리
+        # total_dict[curr_doc]["texts"] = preprocess_markdown(total_dict[curr_doc]["texts"])
+
+        # Metadata 추가
+    
+    try:
+        with OUTPUT_JSON.open("w", encoding="utf-8") as json_file:
+            json.dump(total_dict, json_file, ensure_ascii=False, indent=4)
+        logger.info(f"Successfully save json file: {str(OUTPUT_JSON)}")
+        
+    except Exception as e:
+        logger.error(f"Failed save json file: {e}")
 
 
 if __name__ == "__main__":
