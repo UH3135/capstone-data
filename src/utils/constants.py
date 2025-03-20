@@ -33,3 +33,16 @@ LATEX_UNICODE_MAP = {
     "\\text{mathbbH}" : "ℍ",
     "\\text{mathbbP}" : "ℙ"
 }
+
+# image 분류 카테고리
+IMAGE_CATEGORY = ["Graph", "Diagram", "Text", "Formula"]
+
+FORMULA_OCR_MESSAGE = [
+    {
+        "role": "user",
+        "content": [
+            {"type": "image"},
+            {"type": "text", "text": "Extract mathematical expressions in LaTeX format"}
+        ]
+    },
+]
