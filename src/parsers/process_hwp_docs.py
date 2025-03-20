@@ -94,6 +94,7 @@ class HwpController:
 
                 except Exception as e:
                     logger.error(f"ImageExtractionError: {str(e)}")
+        
 
         process_time = time.time()-start
 
@@ -104,7 +105,8 @@ class HwpController:
         return {
             "tables": self.one_file_table_list,
             "images": self.one_file_images,
-            "equals": self.one_file_equations
+            "equals": self.one_file_equations,
+            "content": self.extract_text()
         }
 
     def get_process_time(self) -> int:
