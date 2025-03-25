@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 
 from parsers.table_parser import TableParser
+from parsers.image_ocr import ImageOCR
+from parsers.json_formatter import save_json
 from parsers.image_ocr import convert_image_to_json
 from parsers.data_cleaner import preprocess_markdown
 from utils.file_handler import get_data_from_pickling, save_data_from_pickling
@@ -66,6 +68,14 @@ def main():
         
     except Exception as e:
         logger.error(f"Failed save json file: {e}")
+
+    # image to text
+    image_data = components['images']
+    image_ocr = ImageOCR()
+    
+    for image_data in image_data.keys():
+        image_data[image_data] = image_ocr.convert_img_to_txt(image_data[image_data])
+    print(json.dumps(image_data, ensure_ascii=False, indent=4))
 
 
 if __name__ == "__main__":

@@ -40,8 +40,6 @@ class HwpController:
         
         start = time.time()
 
-        
-
         # Latex 수식을 우선 추출
         self.hwp_equation = []
         for ctrl in self.hwp.ctrl_list:
@@ -91,6 +89,7 @@ class HwpController:
                 try:
                     img_tmp_path = Path(get_image_from_clipboard())
                     if not img_tmp_path:
+
                         continue   
                     with img_tmp_path.open("rb") as f:
                         img_data = f.read()
@@ -142,6 +141,17 @@ class HwpController:
         self.hwp.SetPosBySet(ctrl.GetAnchorPos(0))
         self.hwp.HAction.Run("SelectCtrlFront")
         self.hwp.HAction.Run("Copy")
+    
+    def get_img_with_binary(img_path: Path) -> bytes:
+        """
+        image Path를 토대로 binary 형태로 변환하는 코드
+
+        Args:
+
+        Returns:
+
+        """
+
 
     def extract_text(self) -> str:
         txt = ""
