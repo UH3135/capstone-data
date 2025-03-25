@@ -1,5 +1,6 @@
 import io
 import time
+import re
 from pathlib import Path
 from typing import List, Dict
 from pyhwpx import Hwp
@@ -32,30 +33,42 @@ class HwpController:
         self.one_file_table_list = {}
         self.one_file_images = {}
         self.one_file_equations = []
+
+        self.image_cnt = 0
+        self.table_cnt = 0
+        self.equation_cnt = 0
         
         start = time.time()
-        table_cnt = 0
 
         # Latex 수식을 우선 추출
         self.hwp_equation = []
         for ctrl in self.hwp.ctrl_list:
             if ctrl.UserDesc == "수식":
+                self.equation_cnt += 1
                 self._copy_ctrl(ctrl)
-                try: 
+                try:
                     self.hwp_equation.append(ctrl.Properties.Item('VisualString'))
+                    
+                    self.hwp.move_to_ctrl(ctrl)
+                    self.hwp.insert_text(f'{{equation_{self.equation_cnt}}}')
         
                 except Exception as e:
-                    logger.error(f"EqualationExtractionError: {str(e)}")
+                    logger.error(f"EquationExtractionError: {str(e)}")
         
         self.one_file_equations = extract_latex_list(self.hwp, self.hwp_equation)
 
         for ctrl in self.hwp.ctrl_list:
             if ctrl.UserDesc == "표":
+                self.table_cnt += 1
+                self.hwp.move_to_ctrl(ctrl)
+                self.hwp.insert_text(f'{{table_{self.table_cnt}}}')
                 self._copy_ctrl(ctrl)
+
                 try:
                     html = get_table_from_clipboard()
                     table_df = pd.read_html(io.StringIO(html))[0]
                     row_num, col_num = table_df.shape
+
                         
                 except BaseException as e:
                     logger.error(f"TableExtractionError: Failed to extract table: {e}")
@@ -63,31 +76,48 @@ class HwpController:
 
                 if not row_num or not col_num:
                     continue
-                
-                table_cnt += 1
-                self.one_file_table_list[table_cnt] = html
+
+                self.one_file_table_list[self.table_cnt] = html
             
             elif ctrl.UserDesc == "그림":
+                # 이미지가 '글과 겹치게 하여 글 뒤로'로 설정 되어 있으면 워터마크이기 때문에 추출하지 않는다.
+                if ctrl.Properties.Item("TextWrap") == 2:
+                    continue
+
+                self.image_cnt += 1
                 self._copy_ctrl(ctrl)
                 try:
                     img_tmp_path = Path(get_image_from_clipboard())
                     if not img_tmp_path:
+
                         continue   
-                    self.one_file_images[str(img_tmp_path)] = ''    
+                    with img_tmp_path.open("rb") as f:
+                        img_data = f.read()
+    
+                    self.one_file_images[f"image_{self.image_cnt}"] = img_data
+                    
+                    self.hwp.move_to_ctrl(ctrl)
+                    self.hwp.insert_text(f'{{image_{self.image_cnt}}}')  
 
                 except Exception as e:
                     logger.error(f"ImageExtractionError: {str(e)}")
+        
 
         process_time = time.time()-start
 
         self.total_time += process_time
+
+        logger.info(f"확인된 수식 개수 : {self.equation_cnt} / 추출된 수식 개수 : {len(self.one_file_equations)}")
+        logger.info(f"확인된 표 개수 : {self.table_cnt} / 추출된 표 개수 : {len(self.one_file_table_list)}")
+        logger.info(f"확인된 이미지 개수 : {self.image_cnt} / 추출된 이미지 개수 : {len(self.one_file_images)}")
 
         logger.info(f"Success extract from hwp file: {process_time}")
 
         return {
             "tables": self.one_file_table_list,
             "images": self.one_file_images,
-            "equals": self.one_file_equations
+            "equals": self.one_file_equations,
+            "content": self.extract_text()
         }
 
     def get_process_time(self) -> int:
@@ -111,6 +141,17 @@ class HwpController:
         self.hwp.SetPosBySet(ctrl.GetAnchorPos(0))
         self.hwp.HAction.Run("SelectCtrlFront")
         self.hwp.HAction.Run("Copy")
+    
+    def get_img_with_binary(img_path: Path) -> bytes:
+        """
+        image Path를 토대로 binary 형태로 변환하는 코드
+
+        Args:
+
+        Returns:
+
+        """
+
 
     def extract_text(self) -> str:
         txt = ""
@@ -145,5 +186,5 @@ class HwpController:
         finally:
             self.hwp.ReleaseScan()
 
-            return txt
+            return re.sub(r'(\n\s*){3,}', '\n\n\n', txt)
     
