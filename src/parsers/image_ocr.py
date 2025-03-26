@@ -125,5 +125,4 @@ class ImageOCR:
         # texts = [doc.page_content for doc in documents]
         
         texts = self.reader.readtext(binary_img)
-        
-        return texts[1]
+        return " ".join([result[1] for result in texts])
