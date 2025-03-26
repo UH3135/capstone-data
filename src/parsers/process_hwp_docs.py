@@ -59,6 +59,8 @@ class HwpController:
                     logger.error(f"EquationExtractionError: {str(e)}")
         for idx, latex in enumerate(extract_latex_list(self.hwp, self.hwp_equation)):
             self.one_file_equations[f"equation_{idx+1}"] = latex
+        
+        self.one_file_equations = extract_latex_list(self.hwp, self.hwp_equation)
 
         for ctrl in self.hwp.ctrl_list:
             if ctrl.UserDesc == "표":
@@ -133,7 +135,7 @@ class HwpController:
             "equations": self.one_file_equations
         }
 
-        json_path = OUTPUT_DIR / f"{hwp_path.stem}.json"
+        json_path = OUTPUT_DIR / f"{hwp_path.parent.stem}.json"
         try:
             with json_path.open("w", encoding="utf-8") as json_file:
                 json.dump(components, json_file, ensure_ascii=False, indent=4)
