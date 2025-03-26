@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = ROOT_DIR / "assets" / "input"
 OUTPUT_DIR = ROOT_DIR / "assets" / "output"
+OUTPUT_PICKLE = OUTPUT_DIR / "output.pickle"
 OUTPUT_JSON = OUTPUT_DIR / "output.json"
 
 # 추출할 Ctrl obj
@@ -34,7 +35,7 @@ LATEX_UNICODE_MAP = {
 }
 
 # image 분류 카테고리
-IMAGE_CATEGORY = ["Latex", "Chart", "Something other than a Chart or Latex"]
+IMAGE_CATEGORY = ["Latex", "Chart", "Something other than a graph or formula"]
 
 FORMULA_OCR_MESSAGE = [
     {
