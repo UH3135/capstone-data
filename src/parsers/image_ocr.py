@@ -1,5 +1,6 @@
 import io
 import os
+import base64
 import re
 from sympy import sympify, latex 
 from PIL import Image
@@ -27,24 +28,28 @@ class ImageOCR:
         self.formular_model = AutoModelForImageTextToText.from_pretrained("ds4sd/SmolDocling-256M-preview").to("cpu")
 
 
-    def convert_img_to_txt(self, binary_image: bytes) -> Tuple[str, str]:
+    def convert_img_to_txt(self, encoding_image: str) -> str:
         '''
         이미지를 분류하고 각 카테고리에 따라서 str, latex, None으로 값을 리턴
         Args:
-            binary_image(bytes): image data
+            encoding_image(str): encoding된 image 데이터
         Return:
             image_type(str): 이미지 형태 리턴 IMAGE_CATEGORY의 값 중 하나이다
             ocr_text(str|None): 이미지를 변환한 데이터 str 값
         '''
+        binary_image = base64.b64decode(encoding_image)
         image = Image.open(io.BytesIO(binary_image))
+        logger.info("Image Loading..")
+
         image_type = self._classificate_image(image)
+        logger.info(f"Success Image Classification: {image_type}")
 
         if image_type == IMAGE_CATEGORY[2]:
-            return image_type, self._extract_text_from_img(binary_image)
+            return self._extract_text_from_img(binary_image)
         elif image_type == IMAGE_CATEGORY[0]:
-            return image_type, fr"{self._extract_formula_from_img(image)}"
+            return fr"{self._extract_formula_from_img(image)}"
         else:
-            return image_type, None
+            return image_type
     
     def _classificate_image(self, image: Image.Image) -> str:
         '''
@@ -75,7 +80,7 @@ class ImageOCR:
         generated_ids = self.formular_model.generate(**inputs, max_new_tokens=500)
         generated_text = self.formular_processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
 
-        def extract_and_convert_to_latex(text: str):
+        def extract_and_convert_to_latex(text: str) -> str:
             '''
             수식을 감지하고 LaTeX 형식으로 변환합니다.
             Args:
@@ -120,5 +125,4 @@ class ImageOCR:
         # texts = [doc.page_content for doc in documents]
         
         texts = self.reader.readtext(binary_img)
-        
-        return texts[1]
+        return " ".join([result[1] for result in texts])
