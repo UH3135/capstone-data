@@ -12,7 +12,7 @@ from parsers.clipboard import get_table_from_clipboard, get_image_from_clipboard
 from parsers.table_parser import TableParser
 from parsers.image_ocr import ImageOCR
 from parsers.equ_parser import extract_latex_list
-from utils.constants import OUTPUT_JSON
+from utils.constants import OUTPUT_DIR
 
 
 
@@ -30,12 +30,12 @@ class HwpController:
         self._close_hwp_file()
 
 
-    def get_tag_from_html(self, hwp_path: Path) -> Dict[str, List]:
+    def get_tag_from_html(self, hwp_path: Path) -> None:
         self._open_hwp_file(hwp_path)
     
         self.one_file_table_list = {}
         self.one_file_images = {}
-        self.one_file_equations = []
+        self.one_file_equations = {}
 
         self.image_cnt = 0
         self.table_cnt = 0
@@ -57,8 +57,8 @@ class HwpController:
         
                 except Exception as e:
                     logger.error(f"EquationExtractionError: {str(e)}")
-        
-        self.one_file_equations = extract_latex_list(self.hwp, self.hwp_equation)
+        for idx, latex in enumerate(extract_latex_list(self.hwp, self.hwp_equation)):
+            self.one_file_equations[f"equation_{idx+1}"] = latex
 
         for ctrl in self.hwp.ctrl_list:
             if ctrl.UserDesc == "표":
@@ -80,7 +80,7 @@ class HwpController:
                 if not row_num or not col_num:
                     continue
 
-                self.one_file_table_list[self.table_cnt] = html
+                self.one_file_table_list[f"table_{self.table_cnt}"] = html
             
             elif ctrl.UserDesc == "그림":
                 # 이미지가 '글과 겹치게 하여 글 뒤로'로 설정 되어 있으면 워터마크이기 때문에 추출하지 않는다.
@@ -118,25 +118,26 @@ class HwpController:
 
         logger.info(f"JSON 변환 진행 중")
         table_parser = TableParser()
-        image_ocr = ImageOCR()
+        #image_ocr = ImageOCR()
 
         for table_name in self.one_file_table_list.keys():
             self.one_file_table_list[table_name] = table_parser.parse_table_from_html(self.one_file_table_list[table_name])
 
-        for image_data in self.one_file_images.keys():
-            self.one_file_images[image_data] = image_ocr.convert_img_to_txt(self.one_file_images[image_data])
+        #for image_data in self.one_file_images.keys():
+            #self.one_file_images[image_data] = image_ocr.convert_img_to_txt(self.one_file_images[image_data])
 
         components = {
             "texts": self.extract_text(),
             "tables": self.one_file_table_list,
             "images": self.one_file_images,
-            "equals": self.one_file_equations
+            "equations": self.one_file_equations
         }
-    
+
+        json_path = OUTPUT_DIR / f"{hwp_path.stem}.json"
         try:
-            with OUTPUT_JSON.open("w", encoding="utf-8") as json_file:
+            with json_path.open("w", encoding="utf-8") as json_file:
                 json.dump(components, json_file, ensure_ascii=False, indent=4)
-            logger.info(f"Successfully save json file: {str(OUTPUT_JSON)}")
+            logger.info(f"Successfully save json file: {str(json_path)}")
         
         except Exception as e:
             logger.error(f"Failed save json file: {e}")
