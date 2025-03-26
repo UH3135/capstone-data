@@ -1,5 +1,6 @@
 import io
 import os
+import base64
 import re
 from sympy import sympify, latex 
 from PIL import Image
@@ -27,15 +28,16 @@ class ImageOCR:
         self.formular_model = AutoModelForImageTextToText.from_pretrained("ds4sd/SmolDocling-256M-preview").to("cpu")
 
 
-    def convert_img_to_txt(self, binary_image: bytes) -> Tuple[str, str]:
+    def convert_img_to_txt(self, encoding_image: str) -> Tuple[str, str]:
         '''
         이미지를 분류하고 각 카테고리에 따라서 str, latex, None으로 값을 리턴
         Args:
-            binary_image(bytes): image data
+            encoding_image(str): encoding된 image 데이터
         Return:
             image_type(str): 이미지 형태 리턴 IMAGE_CATEGORY의 값 중 하나이다
             ocr_text(str|None): 이미지를 변환한 데이터 str 값
         '''
+        binary_image = base64.b64decode(encoding_image)
         image = Image.open(io.BytesIO(binary_image))
         image_type = self._classificate_image(image)
 
