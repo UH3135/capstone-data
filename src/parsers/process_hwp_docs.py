@@ -1,16 +1,16 @@
 import io
 import time
 import re
+import base64
 from pathlib import Path
 from typing import List, Dict
 from pyhwpx import Hwp
 import pandas as pd
+import json
 
 from utils.logger import init_logger
 from parsers.clipboard import get_table_from_clipboard, get_image_from_clipboard
-from parsers.table_parser import Table
 from parsers.equ_parser import extract_latex_list
-
 
 
 logger = init_logger(__file__, "DEBUG")
@@ -32,7 +32,7 @@ class HwpController:
     
         self.one_file_table_list = {}
         self.one_file_images = {}
-        self.one_file_equations = []
+        self.one_file_equations = {}
 
         self.image_cnt = 0
         self.table_cnt = 0
@@ -55,7 +55,8 @@ class HwpController:
                 except Exception as e:
                     logger.error(f"EquationExtractionError: {str(e)}")
         
-        self.one_file_equations = extract_latex_list(self.hwp, self.hwp_equation)
+        for idx, latex in enumerate(extract_latex_list(self.hwp, self.hwp_equation)):
+            self.one_file_equations[f"equation_{idx+1}"] = latex
 
         for ctrl in self.hwp.ctrl_list:
             if ctrl.UserDesc == "표":
@@ -77,7 +78,7 @@ class HwpController:
                 if not row_num or not col_num:
                     continue
 
-                self.one_file_table_list[self.table_cnt] = html
+                self.one_file_table_list[f"table_{self.table_cnt}"] = html
             
             elif ctrl.UserDesc == "그림":
                 # 이미지가 '글과 겹치게 하여 글 뒤로'로 설정 되어 있으면 워터마크이기 때문에 추출하지 않는다.
@@ -88,12 +89,12 @@ class HwpController:
                 self._copy_ctrl(ctrl)
                 try:
                     img_tmp_path = Path(get_image_from_clipboard())
-                    if not img_tmp_path:
 
+                    if not img_tmp_path:
                         continue   
+
                     with img_tmp_path.open("rb") as f:
-                        img_data = f.read()
-    
+                        img_data = base64.b64encode(f.read()).decode("utf-8")
                     self.one_file_images[f"image_{self.image_cnt}"] = img_data
                     
                     self.hwp.move_to_ctrl(ctrl)
@@ -113,12 +114,17 @@ class HwpController:
 
         logger.info(f"Success extract from hwp file: {process_time}")
 
-        return {
+        logger.info(f"JSON 변환 진행 중")
+
+        components = {
+            "texts": self.extract_text(),
             "tables": self.one_file_table_list,
             "images": self.one_file_images,
-            "equals": self.one_file_equations,
-            "content": self.extract_text()
+            "equations": self.one_file_equations
         }
+
+        return components
+
 
     def get_process_time(self) -> int:
         return round(self.total_time / self.docs_count, 2)
