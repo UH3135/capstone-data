@@ -1,6 +1,7 @@
 import io
 import os
 import re
+import base64
 import uuid
 import time
 import json
