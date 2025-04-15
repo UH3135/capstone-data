@@ -77,7 +77,21 @@ sudo apt install build-essential cmake libxml2-dev libxslt1-dev
 pip install --pre pyhwp
 ```
 
-2. assets Directory 생성
+2-1. 추가 프로그램 설치
+
+- ccache 설치
+
+```
+sudo apt install ccache
+```
+
+- transformers 설치
+
+```
+pip install -qU git+https://github.com/huggingface/transformers.git
+```
+
+3. assets Directory 생성
    - assets 파일 아래에 input 폴더 안에 모든 hwp 파일을 담아둡니다.
 
 ## Code Convention
