@@ -1,20 +1,21 @@
-# capstone-data
+# 프로젝트 소개
+hwp로 된 강의 자료에 포함된 **복잡한 표나 이미지**를 정보나 순서의 손실이 없도록 **JSON 포맷으로 변환하는 전처리 모듈**입니다.
 
-Hwp 파일 Json으로 변환
+## Project Structure
+<img width="714" alt="Image" src="https://github.com/user-attachments/assets/cb388221-d692-44ac-947d-5cb2da840764" />
 
-## hwp to Json
+## Result
+- Image parsing
+- Table parsing
 
-1. hwp to html
-   - pyhwpx 모듈 사용
-   - html tag를 가능한 보존
-2. table and LaTeX parsing
-   - html tag를 이용하여 Data Parsing
-3. Image to Text (with OCR model)
-   - Azure OPENAI를 이용하여 Img to Text 작업 진행
-4. Data Process
-   - 의미없는 괄호, 공백 제거
-5. Json
-   - Metadata 추가
+## Tech Stack
+- mathml
+- <img src="https://img.shields.io/badge/huggingface-FFD21E?style=flat-square&logo=huggingface&logoColor=white"/> Huggingface
+- pyhwpx [https://pypi.org/project/pyhwpx/]
+- Easyocr [https://github.com/JaidedAI/EasyOCR]
+- Google Siglip2 [https://huggingface.co/blog/siglip2]
+- Docling [https://github.com/docling-project/docling]
+
 
 ## File Structure
 
@@ -54,15 +55,19 @@ hwp-to-html-parser/
 │── README.md                     # 프로젝트 개요
 ```
 
-## 실행 방법
+### 환경 설명
 
-1. pyhwpx 설치
+Windows 기반의 환경에서만 HWP to Json 변환이 가능합니다.
+
+리눅스 기반의 환경에서는 Windows에서 먼저 변환을 진행한 후 임시 저장된 JSON으로 Table Parsing, Convert Image를 진행할 수 있도록 구성되었습니다.
+
+1. pyhwpx 설치 (Windows 환경)
 
 ```
 pip install --pre pyhwpx
 ```
 
-1-1. hwp5 패키지 설치
+1-1. hwp5 패키지 설치 (Windows 환경)
 
 - hwp5를 위한 패키지 설치
 
@@ -94,26 +99,20 @@ pip install -qU git+https://github.com/huggingface/transformers.git
 3. assets Directory 생성
    - assets 파일 아래에 input 폴더 안에 모든 hwp 파일을 담아둡니다.
 
-## Code Convention
+4. Python 실행
 
-1. Black
+```
+cd src
+python main.py
+```
 
-- Black은 PEP 8을 강제하는 자동 코드 포맷터이며, 코드 스타일을 자동으로 정리해줌.
+5. JSON 파일에서 Table, Image 변환
+   assets/output/ 아래에 있는 parsing.json 파일 저장
 
-2. Flake8
+6. Streamlit 실행
 
-- Black은 코드를 자동 수정해주지만, Flake8은 코드 스타일을 검사하고 경고 메시지를 출력하는 도구임
+```
+streamlit run app.py
+```
 
-3. isort
 
-- import 구문의 순서를 PEP 8 스타일에 맞게 자동 정리해주는 도구.
-
-4. Code Convention 적용
-   1. Pre-commit Hook 설치
-   ```
-   pip install pre-commit
-   ```
-   2. 적용
-   ```
-   pre-commit install
-   ```
