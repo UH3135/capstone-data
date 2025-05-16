@@ -1,18 +1,15 @@
 # 프로젝트 소개
 hwp로 된 강의 자료에 포함된 **복잡한 표나 이미지**를 정보나 순서의 손실이 없도록 **JSON 포맷으로 변환하는 전처리 모듈**입니다.
 
-## Project Structure
-<img width="714" alt="Image" src="https://github.com/user-attachments/assets/cb388221-d692-44ac-947d-5cb2da840764" />
-
 ## Result
 - Image parsing
 - Table parsing
 
 ## Tech Stack
 - mathml
-- <img src="https://img.shields.io/badge/huggingface-FFD21E?style=flat-square&logo=huggingface&logoColor=white"/> Huggingface
+- Huggingface
 - pyhwpx [https://pypi.org/project/pyhwpx/]
-- Easyocr [https://github.com/JaidedAI/EasyOCR]
+- Paddle OCR
 - Google Siglip2 [https://huggingface.co/blog/siglip2]
 - Docling [https://github.com/docling-project/docling]
 
@@ -114,5 +111,6 @@ python main.py
 ```
 streamlit run app.py
 ```
-
+## Project Structure
+![Image](https://github.com/user-attachments/assets/ea1ecba7-46de-4a48-909f-535fe3df87d9)
 
