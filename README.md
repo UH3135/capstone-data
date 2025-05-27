@@ -6,13 +6,10 @@ hwp로 된 강의 자료에 포함된 **복잡한 표나 이미지**를 정보�
 - Table parsing
 
 ## Tech Stack
-- mathml
-- Huggingface
 - pyhwpx [https://pypi.org/project/pyhwpx/]
-- Paddle OCR
+- Paddle OCR [https://github.com/PaddlePaddle/PaddleOCR]
 - Google Siglip2 [https://huggingface.co/blog/siglip2]
 - Docling [https://github.com/docling-project/docling]
-
 
 ## File Structure
 
@@ -23,75 +20,42 @@ hwp-to-html-parser/
 │   │   ├── sample1.hwp
 │   │   ├── sample2.hwp
 │   ├── output/                  # 변환된 JSON/HTML 파일 저장
-│   │   ├── sample1.html
 │   │   ├── sample1.json
 │── src/
 │   ├── parsers/                 # 데이터 파싱 관련 모듈
-│   │   ├── clipboard.py         # clipboard에서 html 추출
-│   │   ├── table_parser.py      # 테이블 변환
-│   │   ├── latex_parser.py.     # LaTeX 변환
-│   │   ├── data_cleaner.py      # 데이터 전처리 (공백/특수문자 제거) 및 Metadata 추가
-│   │   ├── image_ocr.py         # 이미지 → 텍스트 (OCR)
-│   │   ├── json_formatter.py    # JSON 변환 및 저장
+│   │   ├── clipboard.py         # hwp에서 clipboard로 이미지, 표 추출(html)
+│   │   ├── equ_parser.py        # 한글 수식을 LaTeX 형식으로 변환
+│   │   ├── image_ocr.py         # 이미지를 String으로 변환
 │   │   ├── process_hwp_docs.py  # hwp automation api 컨트롤
-│   │   ├── __init__.py
-│   ├── utils/                   # 유틸리티 함수 모음
-│   │   ├── file_handler.py      # 파일 로드 관련 모듈 (pickling 등)
+│   │   ├── table_parser.py      # 표를 Dict 형태로 변환
+│   ├── utils/                   
+│   │   ├── constants.py         # 파일 경로, 라벨, 프롬프트 등 저장
+│   │   ├── Exception_Fix.py     # 수식 변환시 생기는 예외 형식 저장
+│   │   ├── file_handler.py      # 파일 로드 관련 모듈 (pickling 등) (삭제 예정)
 │   │   ├── logger.py            # 로깅 설정
-│   │   ├── constants.py         # 상수 관리
-│   │   ├── __init__.py
+│   │   ├── window_asciimath.py  # py-asciimath 경로 지정
 │   ├── main.py                  # 프로그램 실행 진입점
-│── docs/                         # 문서화
-│   ├── README.md
-│   ├── API_DOCS.md
-│── .pre-commit-config.yaml       # 코드 스타일 자동 적용
-│── .gitignore                    # Git에서 제외할 파일 목록
-│── pyproject.toml                 # 패키지 및 도구 설정
-│── requirements.txt              # Python 패키지 의존성 목록
-│── LICENSE                       # 라이선스 파일
-│── README.md                     # 프로젝트 개요
 ```
 
 ### 환경 설명
 
 Windows 기반의 환경에서만 HWP to Json 변환이 가능합니다.
 
-리눅스 기반의 환경에서는 Windows에서 먼저 변환을 진행한 후 임시 저장된 JSON으로 Table Parsing, Convert Image를 진행할 수 있도록 구성되었습니다.
-
-1. pyhwpx 설치 (Windows 환경)
+1. pyhwpx 설치
 
 ```
 pip install --pre pyhwpx
 ```
 
-1-1. hwp5 패키지 설치 (Windows 환경)
-
-- hwp5를 위한 패키지 설치
-
-```
-sudo apt update
-sudo apt install build-essential cmake libxml2-dev libxslt1-dev
-```
-
-- hwp5 설치
-
-```
-pip install --pre pyhwp
-```
-
-2-1. 추가 프로그램 설치
-
-- ccache 설치
-
-```
-sudo apt install ccache
-```
-
-- transformers 설치
-
-```
-pip install -qU git+https://github.com/huggingface/transformers.git
-```
+2. CUDA/cuDNN 설치
+   -  GPU에 맞는 CUDA 버전 설치
+   ```
+   https://developer.nvidia.com/cuda-downloads
+   ```
+   -  CUDA 버전에 따라 cuDNN 설치
+   ```
+   https://developer.nvidia.com/cudnn-downloads
+   ```
 
 3. assets Directory 생성
    - assets 파일 아래에 input 폴더 안에 모든 hwp 파일을 담아둡니다.
@@ -99,18 +63,9 @@ pip install -qU git+https://github.com/huggingface/transformers.git
 4. Python 실행
 
 ```
-cd src
-python main.py
+python src/main.py
 ```
 
-5. JSON 파일에서 Table, Image 변환
-   assets/output/ 아래에 있는 parsing.json 파일 저장
-
-6. Streamlit 실행
-
-```
-streamlit run app.py
-```
 ## Project Structure
 ![Image](https://github.com/user-attachments/assets/ea1ecba7-46de-4a48-909f-535fe3df87d9)
 
