@@ -69,3 +69,54 @@ python src/main.py
 ## Project Structure
 ![Image](https://github.com/user-attachments/assets/ea1ecba7-46de-4a48-909f-535fe3df87d9)
 
+## 코드 아키텍쳐
+### src/main.py
+
+- 프로그램의 진입점(Entry Point)입니다.
+- 전체 파이프라인을 실행하며, 각 파서 및 유틸리티 모듈을 호출합니다.
+- 예시 실행:  
+  ```bash
+  python src/main.py
+  ```
+
+### src/parsers/
+
+1. clipboard.py
+- HWP 문서에서 이미지, 표를 클립보드 방식으로 추출하여 HTML로 변환합니다.
+
+2. equ_parser.py
+- 한글 문서 내 수식을 LaTeX 형식으로 변환합니다.
+- 수식 변환 과정에서 발생하는 예외 처리는 utils/Exception_Fix.py에서 관리합니다.
+
+3. image_ocr.py
+- 이미지 내 텍스트를 OCR(광학 문자 인식) 기술로 추출하여 문자열로 변환합니다.
+- PaddleOCR 등 외부 라이브러리를 활용합니다.
+
+4. process_hwp_docs.py
+- pyhwpx 등 HWP 자동화 API를 통해 문서를 제어하고, 각종 데이터 추출을 자동화합니다.
+
+5. table_parser.py
+- HWP 문서 내 표를 Dict(딕셔너리) 형태로 변환합니다.
+- 추출된 표는 JSON 포맷으로 저장됩니다.
+
+### src/utils/
+
+1. constants.py
+- 파일 경로, 라벨, 프롬프트 등 프로젝트 전역에서 사용하는 상수를 정의합니다.
+
+2. Exception_Fix.py
+- 수식 변환 등에서 발생하는 예외 케이스를 정의하고 처리합니다.
+
+3. file_handler.py (삭제 예정)
+- 파일 로드 및 저장 관련 기능(예: 피클링 등)을 담당합니다.
+
+4. logger.py
+- 프로젝트 전반의 로깅 설정 및 로그 출력을 담당합니다.
+
+5. window_asciimath.py
+- py-asciimath 경로 지정 등 수식 변환에 필요한 환경 설정을 담당합니다.
+
+### assets/
+
+- input/: 변환할 원본 HWP 파일을 저장합니다.
+- output/: 변환된 JSON/HTML 파일이 저장됩니다.
